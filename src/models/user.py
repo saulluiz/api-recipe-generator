@@ -1,5 +1,6 @@
 from sqlalchemy import Column, String
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 import uuid
 
 from src.database.connection import Base
@@ -13,3 +14,6 @@ class User(Base):
     email = Column(String(100), unique=True, nullable=False, index=True)
     password = Column(String(255), nullable=False)
     full_name = Column(String(100), nullable=False)
+    
+    # Relacionamento com Ingredients
+    ingredients = relationship("Ingredient", back_populates="user", cascade="all, delete-orphan")

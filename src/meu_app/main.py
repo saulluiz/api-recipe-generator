@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api.routes import users
+from src.api.routes import users, ingredients
 
 app = FastAPI(
     title="API Recipe Generator",
@@ -18,6 +18,7 @@ app.add_middleware(
 )
 
 app.include_router(users.router)
+app.include_router(ingredients.router)
 
 
 @app.get("/")
