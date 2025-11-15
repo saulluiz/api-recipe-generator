@@ -26,15 +26,20 @@ async def generate_recipe(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Gera uma receita usando IA com base nos ingredientes fornecidos.
+    Gera 5 receitas diferentes usando IA com base nos ingredientes fornecidos.
+    Cada receita é gerada em uma requisição separada, com restrições incrementais
+    para garantir variedade (não repetir receitas já geradas).
     """
     try:
-        # Chama o serviço de IA
-        generated_recipe = await ai_service.generate_recipe(request.listaIngredientes)
+        # Chama o serviço de IA para gerar 5 receitas
+        generated_recipes = await ai_service.generate_multiple_recipes(
+            ingredients=request.listaIngredientes,
+            count=5
+        )
         
         # Retorna no formato esperado pelo frontend
         return GenerateRecipeResponse(
-            listaReceitas=[generated_recipe]
+            listaReceitas=generated_recipes
         )
     except ValueError as e:
         raise HTTPException(
@@ -44,7 +49,7 @@ async def generate_recipe(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao gerar receita: {str(e)}"
+            detail=f"Erro ao gerar receitas: {str(e)}"
         )
 
 
