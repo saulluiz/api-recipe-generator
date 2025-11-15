@@ -13,14 +13,14 @@ class IngredientRepository:
     def __init__(self, db: Session):
         self.db = db
     
-    def create(self, ingredient_data: IngredientCreate, user_id: UUID) -> Ingredient:
+    def create(self, ingredient_data: IngredientCreate, user_id: UUID, image_path: Optional[str] = None) -> Ingredient:
         """Cria um novo ingrediente no banco de dados"""
         try:
             db_ingredient = Ingredient(
                 name=ingredient_data.name,
                 quantity=ingredient_data.quantity,
                 unit=ingredient_data.unit,
-                image_url=ingredient_data.image_url,
+                image_url=image_path,
                 user_id=user_id
             )
             self.db.add(db_ingredient)

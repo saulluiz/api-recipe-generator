@@ -11,12 +11,13 @@ class AIService:
             raise ValueError("GROQ_API_KEY não configurada no arquivo .env")
         self.client = Groq(api_key=settings.GROQ_API_KEY)
 
-    async def generate_recipe(self, ingredients: List[dict]) -> GeneratedRecipe:
+    async def generate_recipe(self, ingredients: List[dict], exclude_recipes: List[str] = None) -> GeneratedRecipe:
         """
         Gera uma receita usando Groq (Llama 3.3) baseado nos ingredientes fornecidos.
         
         Args:
             ingredients: Lista de dicts com formato [{"Ingrediente": "Tomate", "qtd": "2 unidades"}]
+            exclude_recipes: Lista de nomes de receitas que NÃO devem ser geradas novamente
         
         Returns:
             GeneratedRecipe com nome, lista de ingredientes e passos
@@ -27,12 +28,17 @@ class AIService:
             for ing in ingredients
         ])
 
+        # Adiciona restrições de receitas excluídas
+        exclusion_text = ""
+        if exclude_recipes:
+            exclusion_text = f"\n\nIMPORTANTE: NÃO crie nenhuma das seguintes receitas:\n" + "\n".join([f"- {recipe}" for recipe in exclude_recipes])
+
         # Prompt para o Groq
         prompt = f"""Você é um chef especializado em criar receitas deliciosas.
 
 Com base nos seguintes ingredientes disponíveis, crie UMA receita completa e saborosa:
 
-{ingredients_text}
+{ingredients_text}{exclusion_text}
 
 IMPORTANTE: Retorne APENAS um objeto JSON válido sem nenhum texto adicional, seguindo exatamente este formato:
 
@@ -112,6 +118,37 @@ Regras:
             raise ValueError(f"Erro ao processar resposta da IA: {str(e)}. Resposta: {content}")
         except Exception as e:
             raise Exception(f"Erro ao gerar receita com IA: {str(e)}")
+
+    async def generate_multiple_recipes(self, ingredients: List[dict], count: int = 5) -> List[GeneratedRecipe]:
+        """
+        Gera múltiplas receitas diferentes usando requisições sequenciais à LLM.
+        Cada receita subsequente exclui as anteriores para garantir variedade.
+        
+        Args:
+            ingredients: Lista de dicts com formato [{"Ingrediente": "Tomate", "qtd": "2 unidades"}]
+            count: Número de receitas a gerar (padrão: 5)
+        
+        Returns:
+            List[GeneratedRecipe]: Lista com as receitas geradas
+        """
+        recipes = []
+        exclude_list = []
+        
+        for i in range(count):
+            try:
+                # Gera receita com restrições das anteriores
+                recipe = await self.generate_recipe(ingredients, exclude_recipes=exclude_list if exclude_list else None)
+                recipes.append(recipe)
+                
+                # Adiciona o nome da receita à lista de exclusão
+                exclude_list.append(recipe.nome)
+                
+            except Exception as e:
+                print(f"Erro ao gerar receita {i+1}/{count}: {str(e)}")
+                # Continua tentando gerar as próximas mesmo se uma falhar
+                continue
+        
+        return recipes
 
 
 # Instância única do serviço

@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
 from src.database.connection import get_db
@@ -20,8 +20,11 @@ router = APIRouter(
 
 
 @router.post("/", response_model=IngredientResponse, status_code=status.HTTP_201_CREATED)
-def create_ingredient(
-    ingredient_data: IngredientCreate,
+async def create_ingredient(
+    name: str = Form(...),
+    quantity: str = Form(...),
+    unit: str = Form(...),
+    image: Optional[UploadFile] = File(None),
     current_user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -31,10 +34,16 @@ def create_ingredient(
     - **name**: Nome do ingrediente (obrigatório)
     - **quantity**: Quantidade (obrigatório)
     - **unit**: Unidade de medida (obrigatório)
-    - **image_url**: URL da imagem (opcional)
+    - **image**: Arquivo de imagem (opcional) - JPEG, PNG ou WebP, máximo 5MB
     """
+    ingredient_data = IngredientCreate(
+        name=name,
+        quantity=quantity,
+        unit=unit
+    )
+    
     service = IngredientService(db)
-    return service.create_ingredient(ingredient_data, current_user.id)
+    return await service.create_ingredient(ingredient_data, current_user.id, image)
 
 
 @router.get("/", response_model=List[IngredientResponse])
@@ -71,9 +80,12 @@ def get_ingredient(
 
 
 @router.put("/{ingredient_id}", response_model=IngredientResponse)
-def update_ingredient(
+async def update_ingredient(
     ingredient_id: str,
-    ingredient_data: IngredientUpdate,
+    name: Optional[str] = Form(None),
+    quantity: Optional[str] = Form(None),
+    unit: Optional[str] = Form(None),
+    image: Optional[UploadFile] = File(None),
     current_user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -81,14 +93,29 @@ def update_ingredient(
     Atualiza um ingrediente existente
     
     - **ingredient_id**: ID do ingrediente
-    - Todos os campos são opcionais
+    - **name**: Nome do ingrediente (opcional)
+    - **quantity**: Quantidade (opcional)
+    - **unit**: Unidade de medida (opcional)
+    - **image**: Nova imagem (opcional) - substituirá a anterior se fornecida
     """
     try:
+        # Criar objeto de atualização apenas com campos fornecidos
+        update_data = {}
+        if name is not None:
+            update_data["name"] = name
+        if quantity is not None:
+            update_data["quantity"] = quantity
+        if unit is not None:
+            update_data["unit"] = unit
+        
+        ingredient_data = IngredientUpdate(**update_data)
+        
         service = IngredientService(db)
-        return service.update_ingredient(
+        return await service.update_ingredient(
             UUID(ingredient_id), 
             current_user.id, 
-            ingredient_data
+            ingredient_data,
+            image
         )
     except ValueError:
         raise HTTPException(
@@ -98,19 +125,19 @@ def update_ingredient(
 
 
 @router.delete("/{ingredient_id}", status_code=status.HTTP_200_OK)
-def delete_ingredient(
+async def delete_ingredient(
     ingredient_id: str,
     current_user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
-    Remove um ingrediente
+    Remove um ingrediente e sua imagem associada
     
     - **ingredient_id**: ID do ingrediente
     """
     try:
         service = IngredientService(db)
-        return service.delete_ingredient(UUID(ingredient_id), current_user.id)
+        return await service.delete_ingredient(UUID(ingredient_id), current_user.id)
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
