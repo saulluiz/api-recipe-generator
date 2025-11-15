@@ -15,5 +15,6 @@ class User(Base):
     password = Column(String(255), nullable=False)
     full_name = Column(String(100), nullable=False)
     
-    # Relacionamento com Ingredients
+    # Relacionamentos
     ingredients = relationship("Ingredient", back_populates="user", cascade="all, delete-orphan")
+    recipes = relationship("Recipe", back_populates="user", cascade="all, delete-orphan")

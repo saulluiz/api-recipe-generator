@@ -1,4 +1,5 @@
 from fastapi import HTTPException, status
+from uuid import UUID
 from src.repositories.user_repository import UserRepository
 from src.api.schemas.user_schema import UserCreate, UserLogin
 from src.core.security import create_access_token
@@ -44,7 +45,7 @@ class UserService:
         
         return {"access_token": access_token, "token_type": "bearer"}
 
-    def get_user_by_id(self, user_id: str):
+    def get_user_by_id(self, user_id: UUID):
         user = self.user_repository.get_by_id(user_id)
         if not user:
             raise HTTPException(
