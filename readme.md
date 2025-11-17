@@ -1,4 +1,8 @@
-# API Recipe Generator
+# Repositorios
+https://github.com/saulluiz/api-recipe-generator (atual)
+https://github.com/italo71/recipe-generator (front-end)
+
+## API Recipe Generator
 
 ## Descrição do Projeto
 
